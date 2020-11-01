@@ -186,33 +186,46 @@ class AnswerScreen(Screen):
 	def btn_release(self, grade, sem, num, sub, *args):
 		def answer_page(href):
 			global answer
-			URL = "http://jukjeon.hs.kr"+href
-			bs = BeautifulSoup(requests.get(URL).text, 'html.parser')
-			hwp = ''
-			for i in bs.findAll("a"):
-				if sem+"학기" in i.attrs['href'] and num+"차" in i.attrs['href'] and sub in i.attrs['href']:
-					hwp = i.attrs['href']
-			URL = "http://jukjeon.hs.kr"+hwp
-			res = requests.get(URL, allow_redirects=True)
-			if ".pdf" in hwp:
-				answer = convert_from_bytes(res.content)
+			if href == '':
+				answer = ''
 				sm.add_widget(PrintanswerScreen(name='panswer'))
 				self.manager.current = 'panswer'
-			if ".hwp" in hwp:
-				ole = olefile.OleFileIO(res.content)
-				txt = ole.openstream('PrvText').read()
-				answer = txt.decode('UTF-16').replace("\r", "")
-				sm.add_widget(PrintanswerScreen(name='panswer'))
-				self.manager.current = 'panswer'
+			else:
+				URL = "http://jukjeon.hs.kr"+href
+				bs = BeautifulSoup(requests.get(URL).text, 'html.parser')
+				hwp = ''
+				for i in bs.findAll("a"):
+					if sem+"학기" in i.attrs['href'] and num+"차" in i.attrs['href'] and sub in i.attrs['href']:
+						print("hellow")
+						hwp = i.attrs['href']
+					elif sub == "생활과과학":
+						if sem+"학기" in i.attrs['href'] and num+"차" in i.attrs['href'] and "생할과과학" in i.attrs['href']:
+							# 3학년 2학기 1차 생활과과학 답지 파일이 오타로 생할과과학으로 나옴
+							hwp = i.attrs['href']
+
+				print(hwp)
+				URL = "http://jukjeon.hs.kr"+hwp
+				print(URL)
+				res = requests.get(URL, allow_redirects=True)
+				if ".pdf" in hwp:
+					answer = convert_from_bytes(res.content)
+					sm.add_widget(PrintanswerScreen(name='panswer'))
+					self.manager.current = 'panswer'
+				if ".hwp" in hwp:
+					ole = olefile.OleFileIO(res.content)
+					txt = ole.openstream('PrvText').read()
+					answer = txt.decode('UTF-16').replace("\r", "")
+					sm.add_widget(PrintanswerScreen(name='panswer'))
+					self.manager.current = 'panswer'
 
 		if grade == '1':
 			URL = "http://jukjeon.hs.kr/board.list?mcode=151410&cate=151410"
 			# 1학년 지필평가 정답 URL
 			bs = BeautifulSoup(requests.get(URL).text, 'html.parser')
 			href = ''
-			for i in bs.findAll("a"):
-				if 'title' in i.attrs:
-					if sem != '' or num != '' or sub != '':
+			if grade != '' and sem != '' and num != '' and sub != '':
+				for i in bs.findAll("a"):
+					if 'title' in i.attrs:
 						if sem+"학기" in i.attrs['title'] and num+"차" in i.attrs['title'] and sub in i.attrs['title']:
 							href = i.attrs['href']
 			answer_page(href)
@@ -222,25 +235,27 @@ class AnswerScreen(Screen):
 			# 2학년 지필평가 정답 URL
 			bs = BeautifulSoup(requests.get(URL).text, 'html.parser')
 			href = ''
-			for i in bs.findAll("a"):
-				if 'title' in i.attrs:
-					if sem != '' or num != '' or sub != '':
+			if grade != '' and sem != '' and num != '' and sub != '':
+				for i in bs.findAll("a"):
+					if 'title' in i.attrs:
 						if sem+"학기" in i.attrs['title'] and num+"차" in i.attrs['title'] and sub in i.attrs['title']:
 							href = i.attrs['href']
 			answer_page(href)
 
 		if grade == '3':
-			URL = "http://jukjeon.hs.kr/board.list?mcode=151411&cate=151412"
+			URL = "http://jukjeon.hs.kr/board.list?mcode=151412&cate=151412"
 			URL2 = "http://jukjeon.hs.kr/board.list?mcode=151412&cate=151412&page=2"
 			# 3학년 지필평가 정답 URL
 			bs = BeautifulSoup(requests.get(URL).text, 'html.parser')
 			mybs = BeautifulSoup(requests.get(URL2).text, 'html.parser')
 			href = ''
-			for i in bs.findAll("a")+mybs.findAll("a"):
-				if 'title' in i.attrs:
-					if sem != '' or num != '' or sub != '':
+			if grade != '' and sem != '' and num != '' and sub != '':
+				for i in bs.findAll("a")+mybs.findAll("a"):
+					print(i.attrs)
+					if 'title' in i.attrs:
 						if sem+"학기" in i.attrs['title'] and num+"차" in i.attrs['title'] and sub in i.attrs['title']:
 							href = i.attrs['href']
+			print(href)
 			answer_page(href)
 
 class PrintanswerScreen(Screen):
@@ -248,19 +263,30 @@ class PrintanswerScreen(Screen):
 		super(PrintanswerScreen, self).__init__(**kwargs)
 		def print_enter(self):
 			global answer
+			print(answer)
+			print(type(answer))
 			if type(answer) == type(""):
-				self.add_widget(Label(text=answer, font_name=fontName))
-
+				if answer == '':
+					self.backbtn = Button(text='뒤로가기', font_name=fontName, size_hint=(.1,.05))
+					self.add_widget(self.backbtn)
+				else:
+					self.add_widget(Label(text=answer, font_name=fontName))
+					self.backbtn = Button(text='뒤로가기', font_name=fontName, size_hint=(.1,.05))
+					self.add_widget(self.backbtn)
+					
 			else:
-
 				answernp = np.array(answer[0].transpose(img.FLIP_TOP_BOTTOM))
-				print(answernp)
 
-				# cv2.imshow('Answer', answer[0])
 				texture = Texture.create(size=(answernp.shape[1], answernp.shape[0]), colorfmt='bgr')
 				texture.blit_buffer(answernp.tobytes(), colorfmt='bgr', bufferfmt='ubyte')
 				self.add_widget(Image(texture=texture))
+				self.backbtn = Button(text='뒤로가기', font_name=fontName, size_hint=(.1,.05))
+				self.add_widget(self.backbtn)
+		
+			self.backbtn.bind(on_release=self.btn_back)
 		self.bind(on_enter=print_enter)
+	def btn_back(self, *args):
+		sm.switch_to(AnswerScreen(name='answer'))
 # 스크린매니저에 스크린들 등록
 
 sm.add_widget(FirstScreen(name='first'))
