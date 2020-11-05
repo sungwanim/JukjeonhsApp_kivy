@@ -196,16 +196,13 @@ class AnswerScreen(Screen):
 				hwp = ''
 				for i in bs.findAll("a"):
 					if sem+"학기" in i.attrs['href'] and num+"차" in i.attrs['href'] and sub in i.attrs['href']:
-						print("hellow")
 						hwp = i.attrs['href']
 					elif sub == "생활과과학":
 						if sem+"학기" in i.attrs['href'] and num+"차" in i.attrs['href'] and "생할과과학" in i.attrs['href']:
 							# 3학년 2학기 1차 생활과과학 답지 파일이 오타로 생할과과학으로 나옴
 							hwp = i.attrs['href']
 
-				print(hwp)
 				URL = "http://jukjeon.hs.kr"+hwp
-				print(URL)
 				res = requests.get(URL, allow_redirects=True)
 				if ".pdf" in hwp:
 					answer = convert_from_bytes(res.content)
@@ -251,11 +248,9 @@ class AnswerScreen(Screen):
 			href = ''
 			if grade != '' and sem != '' and num != '' and sub != '':
 				for i in bs.findAll("a")+mybs.findAll("a"):
-					print(i.attrs)
 					if 'title' in i.attrs:
 						if sem+"학기" in i.attrs['title'] and num+"차" in i.attrs['title'] and sub in i.attrs['title']:
 							href = i.attrs['href']
-			print(href)
 			answer_page(href)
 
 class PrintanswerScreen(Screen):
@@ -263,8 +258,6 @@ class PrintanswerScreen(Screen):
 		super(PrintanswerScreen, self).__init__(**kwargs)
 		def print_enter(self):
 			global answer
-			print(answer)
-			print(type(answer))
 			if type(answer) == type(""):
 				if answer == '':
 					self.backbtn = Button(text='뒤로가기', font_name=fontName, size_hint=(.1,.05))
@@ -282,7 +275,6 @@ class PrintanswerScreen(Screen):
 				self.add_widget(Image(texture=texture))
 				self.backbtn = Button(text='뒤로가기', font_name=fontName, size_hint=(.1,.05))
 				self.add_widget(self.backbtn)
-		
 			self.backbtn.bind(on_release=self.btn_back)
 		self.bind(on_enter=print_enter)
 	def btn_back(self, *args):
